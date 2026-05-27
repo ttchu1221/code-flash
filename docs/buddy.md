@@ -1,6 +1,6 @@
 # Buddy — AI Companion Pet
 
-> This feature exists in the official Claude Code codebase but has not been fully released. cc-mini implements and ships it.
+> This feature exists in the official Claude Code codebase but has not been fully released. code-flash implements and ships it.
 
 A Tamagotchi-style AI companion that lives in your terminal. Each user gets a unique pet determined by a seeded PRNG — same username always produces the same species, rarity, and stats.
 
@@ -70,14 +70,14 @@ Use `/buddy mood` to see detailed mood bars and the current dominant mood.
 
 ## Unlock Pikachu
 
-Set `CC_MINI_BUDDY_SEED` to a seed containing "pikachu".
+Set `CODE_FLASH_BUDDY_SEED` to a seed containing "pikachu".
 
 **If you already have a companion**, delete the old one first — the seed is locked at hatch time:
 
 ```bash
-rm ~/.config/mini-claude/companion.json   # delete existing companion
-export CC_MINI_BUDDY_SEED=pikachu-3361    # set seed before hatching
-cc-mini
+rm ~/.config/code-flash/companion.json    # delete existing companion
+export CODE_FLASH_BUDDY_SEED=pikachu-3361 # set seed before hatching
+code-flash
 > /buddy                                  # hatch new companion
 ```
 
@@ -89,4 +89,4 @@ cc-mini
 | Epic | `pikachu-488` |
 | Legendary | `pikachu-3361` |
 
-Once hatched, the companion persists — you can `unset CC_MINI_BUDDY_SEED` afterwards and it stays.
+Once hatched, the companion persists — you can `unset CODE_FLASH_BUDDY_SEED` afterwards and it stays.

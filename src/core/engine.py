@@ -1,4 +1,5 @@
 from __future__ import annotations
+import logging
 import random
 import re
 import time
@@ -8,6 +9,8 @@ from .config import DEFAULT_MODEL, default_max_tokens_for_model, resolve_model
 from .llm import LLMClient
 from .tool import Tool, ToolResult
 from .permissions import PermissionChecker
+
+logger = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from features.cost_tracker import CostTracker
@@ -65,6 +68,8 @@ class Engine:
                  cost_tracker: CostTracker | None = None,
                  advisor_model: str | None = None,
                  advisor_max_uses: int | None = None):
+        # from pdb import set_trace
+        # set_trace()
         self._provider = provider
         self._model = resolve_model(model, provider=provider)
         self._max_tokens = max_tokens or default_max_tokens_for_model(
@@ -107,13 +112,15 @@ class Engine:
         return list(self._messages)
 
     def set_messages(self, messages: list[dict]) -> None:
-        self._messages = [
-            {
+        self._messages = []
+        for message in messages:
+            msg: dict[str, Any] = {
                 "role": message["role"],
                 "content": message.get("content", ""),
             }
-            for message in messages
-        ]
+            if message.get("reasoning_content") is not None:
+                msg["reasoning_content"] = message["reasoning_content"]
+            self._messages.append(msg)
 
     def set_session_store(self, store: SessionStore | None) -> None:
         self._session_store = store
@@ -130,6 +137,14 @@ class Engine:
             self._model,
             provider=self._provider,
         )
+        # 暂时禁用model_state功能
+        # Persist so next launch uses this model by default
+        # from .model_state import save_model_state
+        # save_model_state(
+        #     model=self._model,
+        #     provider=self._provider,
+        #     base_url=self._client._base_url or "",
+        # )
 
     def _persist(self, message: dict) -> None:
         """Append message to session store if available."""
@@ -234,6 +249,9 @@ class Engine:
                                 "model": self._advisor_model,
                                 "max_uses": self._advisor_max_uses,
                             })
+                        _msg_count = len(self._messages)
+                        _sys_len = len(self.system_prompt) if self.system_prompt else 0
+                        logger.info(f"⏱ API call: model={self._model}, messages={_msg_count}, system_prompt={_sys_len} chars, tools={len(tools)}")
                         stream_obj = self._client.stream_messages(
                             model=self._model,
                             max_tokens=self._max_tokens,
@@ -259,6 +277,7 @@ class Engine:
 
                             final = stream.get_final_message()
                             _api_elapsed = time.monotonic() - _api_t0
+                            logger.info(f"⏱ API done: {_api_elapsed:.2f}s, stop_reason={final.stop_reason}")
                             # Track token usage / cost
                             if final.usage and self._cost_tracker:
                                 self._cost_tracker.add_usage(self._model, {
@@ -276,6 +295,10 @@ class Engine:
                             for block in final.content:
                                 if _block_type(block) == "tool_use":
                                     tool_uses.append(block)
+                            if tool_uses:
+                                logger.info(f"⏱ Extracted {len(tool_uses)} tool call(s): {[_block_name(t) for t in tool_uses]}")
+                            else:
+                                logger.info(f"⏱ No tool_use blocks found in response (content blocks: {len(final.content)})")
                         break  # success, exit retry loop
                     except AbortedError:
                         raise
@@ -321,10 +344,13 @@ class Engine:
                     self._messages.pop()
                     return
 
-                self._messages.append({
+                assistant_msg: dict[str, Any] = {
                     "role": "assistant",
                     "content": final.content,
-                })
+                }
+                if final.reasoning_content is not None:
+                    assistant_msg["reasoning_content"] = final.reasoning_content
+                self._messages.append(assistant_msg)
                 self._persist(self._messages[-1])
 
                 if not tool_uses:
@@ -409,9 +435,12 @@ class Engine:
                             ti = _block_input(tu)
                             tool = self._tools.get(tn)
                             act = tool.get_activity_description(**ti) if tool else None
+                            logger.info(f"⏱ Yielding tool_call: {tn}")
                             yield ("tool_call", tn, ti, act)
 
-                            if tool and self._permissions.check(tool, ti) == "deny":
+                            perm_result = self._permissions.check(tool, ti) if tool else "deny"
+                            logger.info(f"⏱ Permission check result: {tn} -> {perm_result}")
+                            if tool and perm_result == "deny":
                                 result = ToolResult(content="Permission denied.", is_error=True)
                             else:
                                 yield ("tool_executing", tn, ti, act)
@@ -444,6 +473,7 @@ class Engine:
         if not skip_permission and self._permissions.check(tool, tool_input) == "deny":
             return ToolResult(content="Permission denied.", is_error=True)
 
+        logger.info(f"🔧 Executing tool: {tool_name}")
         try:
             # Snapshot file for diff if it's a write tool we want to track
             old_lines: list[str] | None = None
@@ -470,8 +500,10 @@ class Engine:
                 except Exception:
                     pass
 
+            logger.info(f"✅ Tool completed: {tool_name}")
             return result
         except Exception as e:
+            logger.error(f"❌ Tool error: {tool_name} - {e}")
             return ToolResult(content=f"Tool error: {e}", is_error=True)
 
 

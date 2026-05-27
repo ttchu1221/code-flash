@@ -6,8 +6,8 @@ Modelled after claude-code's ``src/skills/loadSkillsDir.ts`` and
 Skills are Markdown files with YAML frontmatter that define reusable prompts.
 They can be:
   1. **Bundled** — registered in code via ``register_skill()``
-  2. **Project** — discovered from ``.cc-mini/skills/<name>/SKILL.md``
-  3. **User** — discovered from ``~/.cc-mini/skills/<name>/SKILL.md``
+  2. **Project** — discovered from ``.code-flash/skills/<name>/SKILL.md``
+  3. **User** — discovered from ``~/.code-flash/skills/<name>/SKILL.md``
 
 Execution modes:
   - **inline** (default): prompt injected into current conversation
@@ -204,7 +204,13 @@ def load_skills_from_dir(skills_dir: Path, source: str = "project") -> list[Skil
         if entry.is_dir():
             skill_md = entry / "SKILL.md"
             if not skill_md.exists():
-                # Fallback: look for any .md file in the directory
+                # If subdirectories exist, recurse first — they may contain
+                # deeper SKILL.md files (e.g. research/arxiv/SKILL.md).
+                # Only fall back to a loose .md file when there are no subdirs.
+                subdirs = [e for e in sorted(entry.iterdir()) if e.is_dir()]
+                if subdirs:
+                    loaded.extend(load_skills_from_dir(entry, source=source))
+                    continue
                 md_files = list(entry.glob("*.md"))
                 if md_files:
                     skill_md = md_files[0]
@@ -247,20 +253,20 @@ def discover_skills(cwd: str | None = None) -> list[Skill]:
 
     Search order (matches claude-code's four-tier hierarchy):
       1. Bundled skills (already registered via ``register_bundled_skills()``)
-      2. User skills:    ``~/.cc-mini/skills/``
-      3. Project skills: ``{cwd}/.cc-mini/skills/``
+      2. User skills:    ``~/.code-flash/skills/``
+      3. Project skills: ``{cwd}/.code-flash/skills/``
 
     Returns newly loaded skills (excludes already-registered bundled ones).
     """
     loaded: list[Skill] = []
 
     # User-level skills
-    user_dir = Path.home() / ".cc-mini" / "skills"
+    user_dir = Path.home() / ".config"/  "code-flash" / "skills"
     loaded.extend(load_skills_from_dir(user_dir, source="user"))
 
     # Project-level skills
     if cwd:
-        project_dir = Path(cwd) / ".cc-mini" / "skills"
+        project_dir = Path(cwd) / ".code-flash" / "skills"
         loaded.extend(load_skills_from_dir(project_dir, source="project"))
 
     return loaded

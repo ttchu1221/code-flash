@@ -1,6 +1,6 @@
 # Sandbox
 
-> This feature exists in the official Claude Code codebase but has not been fully released. cc-mini implements and ships it.
+> This feature exists in the official Claude Code codebase but has not been fully released. code-flash implements and ships it.
 
 Runs Bash commands inside [bubblewrap (bwrap)](https://github.com/containers/bubblewrap) isolation on Linux.
 

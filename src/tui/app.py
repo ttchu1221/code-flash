@@ -1,4 +1,4 @@
-"""cc-mini entry point — argparse, engine setup, and interactive REPL."""
+"""code-flash entry point — argparse, engine setup, and interactive REPL."""
 from __future__ import annotations
 
 import argparse
@@ -12,7 +12,7 @@ from pathlib import Path
 from prompt_toolkit.history import FileHistory
 from rich.console import Console
 
-from core.config import load_app_config
+from core.config import AppConfig, load_app_config
 from core.context import build_system_prompt
 from core.engine import AbortedError, Engine
 from tools import AskUserQuestionTool
@@ -62,7 +62,7 @@ from tui.input_parser import parse_input
 from tui.shell import run_shell, handle_sandbox_command
 
 console = Console()
-_HISTORY_FILE = Path.home() / ".config" / "cc-mini" / "history"
+_HISTORY_FILE = Path.home() / ".config" / "code-flash" / "history"
 
 # Match claude-code-main: useDoublePress DOUBLE_PRESS_TIMEOUT_MS = 800
 _DOUBLE_PRESS_TIMEOUT_MS = 0.8
@@ -107,7 +107,7 @@ def _run_dream(engine: Engine, memory_dir: Path,
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(prog="cc-mini",
+    parser = argparse.ArgumentParser(prog="code-flash",
                                      description="Minimal AI coding assistant")
     parser.add_argument("prompt", nargs="?", help="Prompt to send (optional)")
     parser.add_argument("-p", "--print", action="store_true",
@@ -143,6 +143,30 @@ def main() -> None:
         app_config = load_app_config(args)
     except ValueError as exc:
         parser.error(str(exc))
+
+    # 暂时禁用model_state功能
+    # Restore last-used model from model_state.json (only when CLI/env didn't specify one)
+    # if not args.model and not os.getenv("CODE_FLASH_MODEL"):
+    #     from core.model_state import load_model_state
+    #     saved = load_model_state()
+    #     if saved:
+    #         # Replace the model in the frozen AppConfig by creating a new one
+    #         app_config = AppConfig(
+    #             provider=saved.get("provider") or app_config.provider,
+    #             api_key=app_config.api_key,
+    #             base_url=saved.get("base_url") or app_config.base_url,
+    #             model=saved["model"],
+    #             max_tokens=app_config.max_tokens,
+    #             effort=app_config.effort,
+    #             buddy_model=app_config.buddy_model,
+    #             memory_dir=app_config.memory_dir,
+    #             dream_interval_hours=app_config.dream_interval_hours,
+    #             dream_min_sessions=app_config.dream_min_sessions,
+    #             auto_dream=app_config.auto_dream,
+    #             advisor_model=app_config.advisor_model,
+    #             advisor_max_uses=app_config.advisor_max_uses,
+    #             config_paths=app_config.config_paths,
+    #         )
 
     # Sandbox initialization
     sandbox_config = load_sandbox_config(app_config.config_paths)
@@ -354,9 +378,11 @@ def main() -> None:
     )
     if is_coordinator_mode():
         config_note += " [dim yellow]· coordinator[/dim yellow]"
+    config_note += f" [dim]· mode: {permissions.mode_label}[/dim]"
     session_note = f"[dim]session {session_store.session_id[:8]}[/dim]" if session_store else ""
-    console.print("[bold cyan]cc-mini[/bold cyan]  "
+    console.print("[bold cyan]code-flash[/bold cyan]  "
                   f"{config_note}  {session_note}")
+    console.print("[dim]Shift+Tab: 切换权限模式 (Default → Plan → Auto Edit → Auto)[/dim]")
 
 
     _file_history = FileHistory(str(_HISTORY_FILE))
@@ -491,6 +517,7 @@ def main() -> None:
                 animator_toolbar=animator.toolbar_text if animator else None,
                 refresh_interval=0.5 if animator else None,
                 terminal_mode_ref=_terminal_mode_ref,
+                permissions=permissions,
             ).strip()
         except KeyboardInterrupt:
             now = time.monotonic()

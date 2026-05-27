@@ -7,18 +7,18 @@ from features.plan import PlanModeManager, _get_plans_dir
 
 
 class TestPlanDir:
-    """Ensure plan files are stored under ~/.config/cc-mini, not ~/.claude."""
+    """Ensure plan files are stored under ~/.config/code-flash, not ~/.claude."""
 
-    def test_plans_dir_uses_config_cc_mini(self, tmp_path):
+    def test_plans_dir_uses_config_code_flash(self, tmp_path):
         fake_home = tmp_path / "home"
         fake_home.mkdir()
         with patch.object(Path, "home", return_value=fake_home):
             plans_dir = _get_plans_dir()
 
-        assert "cc-mini" in plans_dir.parts
+        assert "code-flash" in plans_dir.parts
         assert ".config" in plans_dir.parts
         assert ".claude" not in plans_dir.parts
-        assert plans_dir == fake_home / ".config" / "cc-mini" / "plans"
+        assert plans_dir == fake_home / ".config" / "code-flash" / "plans"
         assert plans_dir.exists()
 
     def test_plans_dir_does_not_create_dot_claude(self, tmp_path):
@@ -29,7 +29,7 @@ class TestPlanDir:
 
         dot_claude = fake_home / ".claude"
         assert not dot_claude.exists(), (
-            "~/.claude should not be created by cc-mini"
+            "~/.claude should not be created by code-flash"
         )
 
 
@@ -42,7 +42,7 @@ class TestPlanModeManager:
         engine.system_prompt = "base prompt"
         return engine
 
-    def test_enter_creates_plan_file_under_config_cc_mini(self, tmp_path):
+    def test_enter_creates_plan_file_under_config_code_flash(self, tmp_path):
         fake_home = tmp_path / "home"
         fake_home.mkdir()
         manager = PlanModeManager()
@@ -52,7 +52,7 @@ class TestPlanModeManager:
             result = manager.enter()
 
         assert manager.is_active
-        assert ".config/cc-mini" in result
+        assert ".config/code-flash" in result
         assert ".claude/plans" not in result
 
     def test_exit_restores_state(self, tmp_path):

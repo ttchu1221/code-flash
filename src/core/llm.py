@@ -72,6 +72,7 @@ class LLMMessage:
     content: list[dict[str, Any]]
     usage: LLMUsage | None = None
     stop_reason: str | None = None  # "end_turn", "max_tokens", "tool_use", etc.
+    reasoning_content: str | None = None
 
 
 def validate_provider(provider: str | None) -> ProviderName:
@@ -275,10 +276,12 @@ class LLMClient:
         finish_reason = _value(choice, "finish_reason") if choice else None
         message = choice.message if choice else None
         usage = _usage_from_openai(getattr(response, "usage", None))
+        reasoning_content = _value(message, "reasoning_content") if message else None
         return LLMMessage(
             content=_normalize_openai_message(message),
             usage=usage,
             stop_reason=_normalize_openai_stop_reason(finish_reason),
+            reasoning_content=reasoning_content,
         )
 
 
@@ -354,6 +357,7 @@ class _OpenAIStream:
         self._tool_calls: dict[int, dict[str, Any]] = {}
         self._usage: LLMUsage | None = None
         self._finish_reason: str | None = None
+        self._reasoning_parts: list[str] = []
         self.text_stream: Iterator[str] = iter(())
 
     def __enter__(self):
@@ -379,6 +383,10 @@ class _OpenAIStream:
                 if finish_reason:
                     self._finish_reason = finish_reason
                 delta = _value(choice, "delta", {}) or {}
+                # Capture reasoning_content from thinking-enabled models
+                reasoning = _value(delta, "reasoning_content")
+                if reasoning:
+                    self._reasoning_parts.append(reasoning)
                 content = _value(delta, "content")
                 if content:
                     self._text_parts.append(content)
@@ -421,10 +429,12 @@ class _OpenAIStream:
                 "name": tool_call.get("name", ""),
                 "input": parsed_args if isinstance(parsed_args, dict) else {},
             })
+        reasoning = "".join(self._reasoning_parts) or None
         return LLMMessage(
             content=content,
             usage=self._usage,
             stop_reason=_normalize_openai_stop_reason(self._finish_reason),
+            reasoning_content=reasoning,
         )
 
 
@@ -621,13 +631,23 @@ def _to_openai_messages(system: str | None, messages: list[dict[str, Any]]) -> l
             }
             if tool_calls:
                 assistant_message["tool_calls"] = tool_calls
+            # Preserve reasoning_content for thinking-enabled models
+            reasoning = message.get("reasoning_content")
+            if reasoning is not None:
+                assistant_message["reasoning_content"] = reasoning
             out.append(assistant_message)
             continue
 
-        out.append({
+        msg: dict[str, Any] = {
             "role": role,
             "content": content,
-        })
+        }
+        # Preserve reasoning_content for thinking-enabled models
+        if role == "assistant":
+            reasoning = message.get("reasoning_content")
+            if reasoning is not None:
+                msg["reasoning_content"] = reasoning
+        out.append(msg)
 
     return out
 

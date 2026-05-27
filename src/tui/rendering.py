@@ -4,9 +4,11 @@ from __future__ import annotations
 import re
 from typing import TYPE_CHECKING
 
-from rich.console import Console
+from rich.box import ROUNDED
+from rich.console import Console, Group
 from rich.live import Live
 from rich.markdown import Markdown as RichMarkdown
+from rich.panel import Panel
 from rich.spinner import Spinner
 from rich.text import Text
 
@@ -178,22 +180,67 @@ def collapsed_tool_summary(tool_names: list[str], done: bool = False) -> str:
 # ---------------------------------------------------------------------------
 
 _TODO_ICONS = {
-    "pending": "[dim]◻[/dim]",
-    "in_progress": "[yellow]◼[/yellow]",
-    "completed": "[green]✓[/green]",
+    "pending": ("●", "dim"),
+    "in_progress": ("●", "bold yellow"),
+    "completed": ("✓", "green"),
 }
 
 
-def render_todo_list(items: list[TodoItem], console: Console) -> None:
-    """Print a checklist-style todo list with status icons."""
+def render_todo_list(
+    items: list[TodoItem],
+    console: Console,
+    action: str = "",
+) -> None:
+    """Print a panel-style todo list matching Qwen Code's checklist UI.
+
+    Renders items inside a Rich Panel with a header showing the action
+    summary (e.g. "Update todos").  Status icons use filled circles for
+    pending/in-progress and checkmarks for completed items.
+    """
+    # Build header
+    header = "TodoWrite"
+    if action:
+        header = f"TodoWrite {action}"
+
+    # Build body lines
+    body_lines: list[Text] = []
     for item in items:
-        icon = _TODO_ICONS.get(item.status, "[dim]◻[/dim]")
+        icon, style = _TODO_ICONS.get(item.status, ("●", "dim"))
         subject = item.subject
         if len(subject) > 72:
             subject = subject[:69] + "…"
+
+        line = Text()
+        line.append("    ")  # 4-space indent
+        line.append(f"{icon}  ", style=style)
         if item.status == "completed":
-            console.print(f"  {icon} [dim]{subject}[/dim]", highlight=False)
+            line.append(subject, style="dim strikethrough")
         elif item.status == "in_progress":
-            console.print(f"  {icon} [bold]{subject}[/bold]", highlight=False)
+            line.append(subject, style="bold")
         else:
-            console.print(f"  {icon} {subject}", highlight=False)
+            line.append(subject)
+        body_lines.append(line)
+
+    if not body_lines:
+        body_lines.append(Text("    (empty)", style="dim"))
+
+    # Header line: ✓ TodoWrite <action>
+    header_text = Text()
+    header_text.append("✓ ", style="green")
+    header_text.append(header, style="bold")
+
+    # Combine header + body into a panel
+    panel_content = Group(
+        header_text,
+        Text(),  # blank line between header and items
+        *body_lines,
+    )
+
+    panel = Panel(
+        panel_content,
+        box=ROUNDED,
+        border_style="dim",
+        padding=(0, 1),
+        expand=False,
+    )
+    console.print(panel)

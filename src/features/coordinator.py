@@ -4,7 +4,7 @@ import os
 from typing import Iterable
 
 
-COORDINATOR_ENV_VAR = "CC_MINI_COORDINATOR"
+COORDINATOR_ENV_VAR = "CODE_FLASH_COORDINATOR"
 
 
 def _is_env_truthy(value: str | None) -> bool:

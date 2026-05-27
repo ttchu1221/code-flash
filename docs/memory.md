@@ -1,6 +1,6 @@
 # KAIROS — Memory System
 
-> This feature exists in the official Claude Code codebase but has not been fully released. cc-mini implements and ships it.
+> This feature exists in the official Claude Code codebase but has not been fully released. code-flash implements and ships it.
 
 The assistant can remember information across sessions and automatically consolidate memories over time.
 
@@ -23,15 +23,15 @@ Configurable: `--dream-interval`, `--dream-min-sessions`, `--no-auto-dream`
 ## Try It Out
 
 ```bash
-cc-mini --auto-approve
+code-flash --auto-approve
 > /remember I prefer Python over JavaScript
 > /remember Our project uses gRPC + PostgreSQL
 > /dream                    # consolidate into topic files
 > /memory                   # verify the index
 
 # New session — the model recalls your preferences
-cc-mini
+code-flash
 > What do you know about my preferences?
 ```
 
-Data stored in `~/.mini-claude/` (memory in `memory/`, sessions in `sessions/`).
+Data stored in `~/.config/code-flash/` (memory in `memory/`, sessions in `sessions/`).

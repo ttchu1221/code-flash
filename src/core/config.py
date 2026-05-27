@@ -66,17 +66,17 @@ _MODEL_MAX_TOKENS = (
     ("claude-3-5-haiku", 8192),
     ("claude-3-haiku", 4096),
 )
-_ENV_MODEL = "CC_MINI_MODEL"
-_ENV_MAX_TOKENS = "CC_MINI_MAX_TOKENS"
-_ENV_MEMORY_DIR = "CC_MINI_MEMORY_DIR"
-_ENV_PROVIDER = "CC_MINI_PROVIDER"
-_ENV_EFFORT = "CC_MINI_EFFORT"
-_ENV_BUDDY_MODEL = "CC_MINI_BUDDY_MODEL"
-_ENV_ADVISOR_MODEL = "CC_MINI_ADVISOR_MODEL"
-_ENV_ADVISOR_MAX_USES = "CC_MINI_ADVISOR_MAX_USES"
+_ENV_MODEL = "CODE_FLASH_MODEL"
+_ENV_MAX_TOKENS = "CODE_FLASH_MAX_TOKENS"
+_ENV_MEMORY_DIR = "CODE_FLASH_MEMORY_DIR"
+_ENV_PROVIDER = "CODE_FLASH_PROVIDER"
+_ENV_EFFORT = "CODE_FLASH_EFFORT"
+_ENV_BUDDY_MODEL = "CODE_FLASH_BUDDY_MODEL"
+_ENV_ADVISOR_MODEL = "CODE_FLASH_ADVISOR_MODEL"
+_ENV_ADVISOR_MAX_USES = "CODE_FLASH_ADVISOR_MAX_USES"
 _DEFAULT_CONFIG_PATHS = (
-    Path.home() / ".config" / "cc-mini" / "config.toml",
-    Path.cwd() / ".cc-mini.toml",
+    Path.home() / ".config" / "code-flash" / "config.toml",
+    Path.cwd() / ".code-flash.toml",
 )
 
 
@@ -89,7 +89,7 @@ class AppConfig:
     max_tokens: int
     effort: str | None = None
     buddy_model: str | None = None
-    memory_dir: Path = Path.home() / ".config" / "cc-mini" / "memory"
+    memory_dir: Path = Path.home() / ".config" / "code-flash" / "memory"
     dream_interval_hours: float = 24.0
     dream_min_sessions: int = 5
     auto_dream: bool = True
@@ -183,7 +183,7 @@ def load_app_config(args: Namespace) -> AppConfig:
         or env_values.get("memory_dir")
         or _file_value("memory_dir")
     )
-    memory_dir = Path(raw_memory_dir).expanduser() if raw_memory_dir else Path.home() / ".config" / "cc-mini" / "memory"
+    memory_dir = Path(raw_memory_dir).expanduser() if raw_memory_dir else Path.home() / ".config" / "code-flash" / "memory"
 
     raw_dream_interval = getattr(args, "dream_interval", None)
     if raw_dream_interval is None:

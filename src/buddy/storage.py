@@ -1,4 +1,4 @@
-"""Companion persistence — JSON storage at ~/.config/cc-mini/companion.json
+"""Companion persistence — JSON storage at ~/.config/code-flash/companion.json
 
 Supports multiple companions. The JSON structure is:
 {
@@ -21,7 +21,7 @@ from pathlib import Path
 
 from .types import CompanionMood, CompanionSoul, StoredCompanion, StoredCompanionWithSeed
 
-_CONFIG_DIR = Path.home() / ".config" / "cc-mini"
+_CONFIG_DIR = Path.home() / ".config" / "code-flash"
 _COMPANION_FILE = _CONFIG_DIR / "companion.json"
 
 

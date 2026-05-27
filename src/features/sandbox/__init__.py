@@ -1,4 +1,4 @@
-"""Sandbox subsystem for cc-mini.
+"""Sandbox subsystem for code-flash.
 
 Provides bubblewrap (bwrap) based command isolation for BashTool.
 """

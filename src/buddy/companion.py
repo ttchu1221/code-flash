@@ -149,13 +149,13 @@ def roll_with_seed(seed: str) -> Roll:
 def companion_user_id() -> str:
     """Derive a stable user identity for companion generation.
 
-    Since cc-mini has no OAuth, use username@hostname as the seed.
+    Since code-flash has no OAuth, use username@hostname as the seed.
     Same user on same machine always gets the same companion.
 
-    Set CC_MINI_BUDDY_SEED env var to override (useful for testing).
+    Set CODE_FLASH_BUDDY_SEED env var to override (useful for testing).
     """
     import os
-    override = os.environ.get('CC_MINI_BUDDY_SEED')
+    override = os.environ.get('CODE_FLASH_BUDDY_SEED')
     if override:
         return override
     try:

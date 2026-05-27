@@ -61,12 +61,12 @@ def load_sandbox_config(
     """Load sandbox config from TOML [sandbox] section.
 
     Priority matches core/config.py: project-local > user-global.
-    Default search: ~/.config/cc-mini/config.toml, .cc-mini.toml
+    Default search: ~/.config/code-flash/config.toml, .code-flash.toml
     """
     if not config_paths:
         config_paths = (
-            Path.home() / ".config" / "cc-mini" / "config.toml",
-            Path.cwd() / ".cc-mini.toml",
+            Path.home() / ".config" / "code-flash" / "config.toml",
+            Path.cwd() / ".code-flash.toml",
         )
     merged: dict[str, Any] = {}
 

@@ -91,6 +91,7 @@ def bordered_prompt(
     animator_toolbar=None,
     refresh_interval: float | None = None,
     terminal_mode_ref: list | None = None,
+    permissions=None,
 ) -> str:
     """Prompt with bordered input box that adapts to content height.
 
@@ -157,9 +158,28 @@ def bordered_prompt(
             fill = "\u2500" * max(0, w - 1 - len(hints))
             parts: list[tuple[str, str]] = [('fg:ansiyellow', f'\u2570{hints}{fill}')]
         else:
-            hints = "\u2500 Enter send \u00b7 Alt+Enter newline \u00b7 ! shell \u00b7 / commands "
-            fill = "\u2500" * max(0, w - 1 - len(hints))
-            parts: list[tuple[str, str]] = [('fg:ansicyan', f'\u2570{hints}{fill}')]
+            parts: list[tuple[str, str]] = [('fg:ansicyan', '\u2570\u2500 Enter发送 \u00b7 Alt+Enter换行 \u00b7 ! 执行Shell \u00b7 / 命令')]
+            if permissions:
+                mode = permissions.mode_label
+                _mode_styles = {
+                    "Default": "fg:ansicyan",
+                    "Plan": "fg:ansiyellow",
+                    "Auto Edit": "fg:ansigreen",
+                    "Auto": "fg:ansired bold",
+                }
+                _mode_name_map = {
+                        "Default": "默认",
+                        "Plan": "规划",
+                        "Auto Edit": "自动编辑",
+                        "Auto": "自动",
+                    }
+                style = _mode_styles.get(mode, "fg:ansicyan")
+                display_mode = _mode_name_map.get(mode, mode) 
+                parts.append((style, f' \u00b7 mode: {display_mode} '))
+            # Fill remaining width
+            used_len = sum(len(t) for _, t in parts)
+            fill = '\u2500' * max(0, w - 1 - used_len)
+            parts.append(('fg:ansicyan', fill))
 
         if animator_toolbar:
             extra = animator_toolbar()
@@ -231,6 +251,13 @@ def bordered_prompt(
     def _(event):
         if not buf.text:
             event.app.exit(exception=EOFError())
+
+    @kb.add('s-tab')
+    def _(event):
+        """Shift+Tab: cycle permission mode (default → plan → auto_edit → auto_approve)."""
+        if permissions is not None:
+            permissions.cycle_mode()
+            event.app.invalidate()  # refresh toolbar to show new mode
 
     app = PTApp(
         layout=Layout(root),

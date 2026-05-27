@@ -8,16 +8,16 @@ from features.coordinator import (
 
 
 def test_is_coordinator_mode_reads_env(monkeypatch):
-    monkeypatch.delenv("CC_MINI_COORDINATOR", raising=False)
+    monkeypatch.delenv("CODE_FLASH_COORDINATOR", raising=False)
     assert is_coordinator_mode() is False
 
-    monkeypatch.setenv("CC_MINI_COORDINATOR", "1")
+    monkeypatch.setenv("CODE_FLASH_COORDINATOR", "1")
     assert is_coordinator_mode() is True
     assert current_session_mode() == "coordinator"
 
 
 def test_match_session_mode_switches_env(monkeypatch):
-    monkeypatch.delenv("CC_MINI_COORDINATOR", raising=False)
+    monkeypatch.delenv("CODE_FLASH_COORDINATOR", raising=False)
 
     warning = match_session_mode("coordinator")
 
@@ -26,12 +26,12 @@ def test_match_session_mode_switches_env(monkeypatch):
 
 
 def test_get_coordinator_user_context_hidden_when_disabled(monkeypatch):
-    monkeypatch.delenv("CC_MINI_COORDINATOR", raising=False)
+    monkeypatch.delenv("CODE_FLASH_COORDINATOR", raising=False)
     assert get_coordinator_user_context(["Read", "Bash"]) == {}
 
 
 def test_get_coordinator_user_context_lists_worker_tools(monkeypatch):
-    monkeypatch.setenv("CC_MINI_COORDINATOR", "1")
+    monkeypatch.setenv("CODE_FLASH_COORDINATOR", "1")
 
     context = get_coordinator_user_context(["Read", "Bash"])
 

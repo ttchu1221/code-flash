@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "cc-mini"
+name = "code-flash"
 version = "0.1.0"
 requires-python = ">=3.11"
 dependencies = [
@@ -18,7 +18,7 @@ dependencies = [
 dev = ["pytest>=8.0", "pytest-asyncio>=0.23"]
 
 [project.scripts]
-cc-mini = "tui.app:main"
+code-flash = "tui.app:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/core", "src/services", "src/features", "src/tui", "src/commands", "src/buddy", "src/sandbox"]

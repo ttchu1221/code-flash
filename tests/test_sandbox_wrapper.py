@@ -121,9 +121,9 @@ class TestResolvePaths:
 
 class TestProtectedPaths:
     def test_with_config_file(self, tmp_path: Path):
-        (tmp_path / ".cc-mini.toml").touch()
+        (tmp_path / ".code-flash.toml").touch()
         paths = _get_protected_paths(str(tmp_path))
-        assert str(tmp_path / ".cc-mini.toml") in paths
+        assert str(tmp_path / ".code-flash.toml") in paths
 
     def test_with_claude_md(self, tmp_path: Path):
         (tmp_path / "CLAUDE.md").touch()

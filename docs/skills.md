@@ -44,10 +44,10 @@ Fixed: added negative check, type annotations, lru_cache...
 
 ## Custom Skills
 
-**Step 1**: Create a directory under `.cc-mini/skills/`
+**Step 1**: Create a directory under `.code-flash/skills/`
 
 ```bash
-mkdir -p .cc-mini/skills/deploy
+mkdir -p .code-flash/skills/deploy
 ```
 
 **Step 2**: Write a `SKILL.md` file
@@ -79,8 +79,8 @@ Running skill: /deploy…
 | Location | Scope |
 |----------|-------|
 | Built-in | 4 bundled skills, always available |
-| `~/.cc-mini/skills/` | Personal skills, all projects |
-| `<project>/.cc-mini/skills/` | Project skills, share with team |
+| `~/.code-flash/skills/` | Personal skills, all projects |
+| `<project>/.code-flash/skills/` | Project skills, share with team |
 
 ## SKILL.md Frontmatter
 

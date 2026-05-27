@@ -20,9 +20,25 @@ _PLAN_MODE_ALLOWED_TOOLS = {
 }
 _PLAN_MODE_WRITE_TOOLS = {"Edit", "Write"}  # allowed only for plan file
 
+# The 4 permission modes, cycled by Shift+Tab
+MODES: list[str] = ["default", "plan", "auto_edit", "auto_approve"]
+_MODE_LABELS: dict[str, str] = {
+    "default":      "Default",
+    "plan":         "Plan",
+    "auto_edit":    "Auto Edit",
+    "auto_approve": "Auto",
+}
+
 
 class PermissionChecker:
-    """Read-only tools are auto-allowed. Bash/writes prompt the user (y/n/always)."""
+    """Read-only tools are auto-allowed. Bash/writes prompt the user (y/n/always).
+
+    Supports 4 modes cycled via Shift+Tab:
+      - default:      read-only auto, writes need confirm
+      - plan:         read-only only (plan file edit only)
+      - auto_edit:    read-only + Edit/Write auto-approved, Bash needs confirm
+      - auto_approve: everything auto-approved (full trust)
+    """
 
     def __init__(
         self,
@@ -34,8 +50,8 @@ class PermissionChecker:
         self._esc_listener: EscListener | None = None
         self._sandbox = sandbox_manager
         self._plan_manager: PlanModeManager | None = None
-        # Permission mode tracking (matches toolPermissionContext.mode in TS)
-        self._mode: str = "default"  # 'default' | 'plan'
+        # Permission mode tracking
+        self._mode: str = "auto_approve" if auto_approve else "default"
         self._pre_plan_mode: str | None = None
         self._pre_plan_always_allow: set[str] | None = None
         # Dream mode: restrict writes to memory directory only
@@ -44,6 +60,40 @@ class PermissionChecker:
 
     def set_plan_manager(self, plan_manager: PlanModeManager) -> None:
         self._plan_manager = plan_manager
+
+    # -- Mode cycling (Shift+Tab) ------------------------------------------
+
+    @property
+    def mode_label(self) -> str:
+        """Human-readable label for the current mode."""
+        return _MODE_LABELS.get(self._mode, self._mode)
+
+    def cycle_mode(self) -> str:
+        """Cycle to the next mode. Returns the new mode label."""
+        idx = MODES.index(self._mode) if self._mode in MODES else 0
+        # Skip plan if PlanModeManager is already active (full plan workflow)
+        for _ in range(len(MODES)):
+            idx = (idx + 1) % len(MODES)
+            new_mode = MODES[idx]
+            if new_mode == "plan" and self._plan_manager and self._plan_manager.is_active:
+                continue  # skip — already in full plan mode via /plan
+            self.set_mode(new_mode)
+            return self.mode_label
+        return self.mode_label
+
+    def set_mode(self, mode: str) -> None:
+        """Switch to a specific mode, handling plan-mode transitions."""
+        if mode == self._mode:
+            return
+        # Leaving plan mode (if currently in plan via cycle)
+        if self._mode == "plan" and not (self._plan_manager and self._plan_manager.is_active):
+            self.exit_plan_mode()
+        # Entering plan mode (lightweight: permission-only, no plan file)
+        if mode == "plan":
+            if not (self._plan_manager and self._plan_manager.is_active):
+                self.enter_plan_mode()
+            return
+        self._mode = mode
 
     def enter_dream_mode(self, memory_dir: str) -> None:
         """Enable dream permission isolation — writes only within memory_dir."""
@@ -89,6 +139,19 @@ class PermissionChecker:
         if self._mode == "plan":
             return self._check_plan(tool, inputs)
 
+        # Auto-approve mode: everything allowed
+        if self._mode == "auto_approve":
+            return "allow"
+
+        # Auto-edit mode: read-only + Edit/Write auto-approved, Bash needs confirm
+        if self._mode == "auto_edit":
+            if tool.is_read_only() or tool.name in ("Edit", "Write"):
+                return "allow"
+            if tool.name in self._always_allow:
+                return "allow"
+            return self._prompt_user(tool, inputs)
+
+        # Default mode
         if tool.is_read_only():
             return "allow"
         if self._auto_approve:
@@ -148,12 +211,12 @@ class PermissionChecker:
     def _prompt_user(self, tool: Tool, inputs: dict) -> PermissionBehavior:
         from rich.console import Console
         console = Console()
-        console.print(f"\n[bold yellow]Permission required:[/bold yellow] [bold]{tool.name}[/bold]")
+        console.print(f"\n[bold yellow]允许执行:[/bold yellow] [bold]{tool.name}[/bold]")
         for k, v in inputs.items():
             val = str(v)[:200] + ("..." if len(str(v)) > 200 else "")
             console.print(f"  [dim]{k}:[/dim] {val}")
 
-        console.print("\n  Allow? \\[y]es / \\[n]o / \\[a]lways: ", end="")
+        console.print("\n  允许? \\[y]es / \\[n]o / \\[a]lways: ", end="")
 
         # Pause the ESC listener so it doesn't steal our keystrokes
         if self._esc_listener:

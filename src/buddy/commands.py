@@ -255,7 +255,7 @@ def _render_help(console: Console) -> None:
         "            Address it by name to chat directly (20-turn memory).\n"
         "            Its tone adapts to both stats and current mood.\n"
         "\n"
-        "  [yellow]Pikachu[/yellow]  Set CC_MINI_BUDDY_SEED=pikachu-3361 before hatching\n"
+        "  [yellow]Pikachu[/yellow]  Set CODE_FLASH_BUDDY_SEED=pikachu-3361 before hatching\n"
         "            to unlock the secret Legendary Pikachu species."
     )
 

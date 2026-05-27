@@ -294,7 +294,7 @@ class TestLoadFromDisk:
 
 class TestDiscoverSkills:
     def test_project_level(self, tmp_path):
-        sd = tmp_path / ".cc-mini" / "skills" / "check"
+        sd = tmp_path / ".code-flash" / "skills" / "check"
         sd.mkdir(parents=True)
         (sd / "SKILL.md").write_text("---\ndescription: Check\n---\nRun check.")
         loaded = discover_skills(str(tmp_path))

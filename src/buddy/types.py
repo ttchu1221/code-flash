@@ -55,7 +55,7 @@ SPECIES = (
     'rabbit', 'mushroom', 'chonk',
 )
 
-# Bonus species — only available via CC_MINI_BUDDY_SEED, not in random pool
+# Bonus species — only available via CODE_FLASH_BUDDY_SEED, not in random pool
 BONUS_SPECIES = ('pikachu',)
 ALL_SPECIES = SPECIES + BONUS_SPECIES
 

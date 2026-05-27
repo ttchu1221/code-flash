@@ -1,69 +1,74 @@
 <div align="center">
 
-# cc-mini
+# ⚡ Code Flash
 
-**Ultra-light Harness scaffolding for AI agents**
+**Ultra-light AI Agent Scaffolding**
 
-**Agentic** &nbsp;·&nbsp; **Built to Extend** &nbsp;·&nbsp; **From Claude Code**
-<br>
+**Agentic** &nbsp;·&nbsp; **Built to Extend** &nbsp;·&nbsp; **~1000 Lines of Python Core**
 
-The entire core is `~1000 lines of Python`
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
 </div>
 
 ---
 
-### **NEW: Buddy — AI Companion with Custom Sprites**
+Code Flash is a minimal, hackable AI coding assistant framework. It provides a complete agentic loop with tool execution, permission management, session persistence, and a beautiful terminal UI — all in ~1000 lines of Python.
 
-> Your coding companion lives in the terminal. Type `/buddy` to hatch it. Supports custom ASCII species — bring your own Pikachu!
+Inspired by Claude Code, extended with features like **Coordinator Mode**, **Buddy (AI Companion Pet)**, **KAIROS Memory**, **Skills System**, and **Sandbox Isolation**.
 
-![Custom Pikachu buddy companion](assets/buddy-pikachu.jpg)
-
-[Full Buddy docs &rarr;](docs/buddy.md)
-
----
-
-## Features
+## ✨ Features
 
 ### Core
 
 - **Interactive REPL** with streaming output, command history, slash command autocomplete
-- **Agentic tool loop** — Claude calls tools autonomously until the task is complete
+- **Agentic tool loop** — LLM calls tools autonomously until the task is complete
 - **9 built-in tools**: `Read`, `Edit`, `Write`, `Glob`, `Grep`, `Bash`, `AskUser`, `EnterPlanMode`, `ExitPlanMode`
-- **Plan mode** — parallel subagents explore codebase before you implement, with permission isolation
-- **Permission system** — mode-aware (default/plan), reads auto-approved, writes/bash ask for confirmation
+- **Plan mode** — parallel subagents explore codebase before you implement
+- **Permission system** — mode-aware (default/plan), reads auto-approved, writes ask for confirmation
 - **Session persistence** — auto-save conversations, `/resume` to continue later
 - **Context compression** — auto-compact when approaching token limits
 - **Anthropic + OpenAI compatible** — works with any compatible API endpoint
 
-### Advanced (from unreleased Claude Code features)
+### Advanced
 
 | Feature | Description | Docs |
 |---------|-------------|------|
-| **Coordinator Mode** | Background workers for parallel research and implementation | [docs &rarr;](docs/coordinator.md) |
-| **Buddy** | Tamagotchi AI pet with personality, stats, mood, and speech bubbles | [docs &rarr;](docs/buddy.md) |
-| **KAIROS Memory** | Cross-session memory with auto-consolidation | [docs &rarr;](docs/memory.md) |
-| **Skills** | One-command workflows: `/review`, `/commit`, `/test`, `/simplify` | [docs &rarr;](docs/skills.md) |
-| **Sandbox** | Bubblewrap isolation for bash commands | [docs &rarr;](docs/sandbox.md) |
+| **Coordinator Mode** | Background workers for parallel research and implementation | [docs →](docs/coordinator.md) |
+| **Buddy** | Tamagotchi AI pet with personality, stats, mood, and speech bubbles | [docs →](docs/buddy.md) |
+| **KAIROS Memory** | Cross-session memory with auto-consolidation | [docs →](docs/memory.md) |
+| **Skills** | One-command workflows: `/review`, `/commit`, `/test`, `/simplify` | [docs →](docs/skills.md) |
+| **Sandbox** | Bubblewrap isolation for bash commands (Linux) | [docs →](docs/sandbox.md) |
+
+### Web UI
+
+A full-featured web interface with real-time streaming, file explorer, and settings panel.
+
+```bash
+cd web && ./start.sh    # Production mode
+cd web && ./dev.sh      # Dev mode with hot reload
+```
+
+See [web/README.md](web/README.md) for details.
 
 ---
 
-## Quick Start
+## 🚀 Quick Start
 
 ### Requirements
 
-- Python 3.10+ (3.11+ recommended)
+- Python 3.11+ (3.12 recommended)
 - An API key for [Anthropic](https://console.anthropic.com/) or any OpenAI-compatible provider
 
 ### Install
 
 ```bash
 # One-line install (recommended)
-curl -fsSL https://raw.githubusercontent.com/e10nMa2k/cc-mini/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/ttchu1221/code-flash/main/install.sh | bash
 
 # Or manual
-git clone https://github.com/e10nMa2k/cc-mini.git
-cd cc-mini
+git clone https://github.com/ttchu1221/code-flash.git
+cd code-flash
 pip install -e ".[dev]"
 ```
 
@@ -74,59 +79,26 @@ pip install -e ".[dev]"
 export ANTHROPIC_API_KEY=sk-ant-...
 
 # Or OpenAI-compatible
-export CC_MINI_PROVIDER=openai # protocol type, not vendor name
-# Azure AI Foundry and other OpenAI-compatible gateways still use "openai"
-# (do not set provider to "foundry", "bedrock", etc.)
+export CODE_FLASH_PROVIDER=openai
 export OPENAI_API_KEY=sk-...
 export OPENAI_BASE_URL=https://your-gateway.example.com/v1
-export CC_MINI_MODEL=gpt-... # optional, default is "gpt-5.1-codex"
+export CODE_FLASH_MODEL=gpt-...
 ```
 
 ### Run
 
 ```bash
-cc-mini                              # Interactive REPL
-cc-mini "what tests exist?"          # One-shot prompt
-cc-mini -p "summarize this codebase" # Print and exit
-cc-mini --auto-approve               # Skip permission prompts
-cc-mini --resume 1                   # Resume previous session
-cc-mini --coordinator                # Coordinator mode
+code-flash                              # Interactive REPL
+code-flash "what tests exist?"          # One-shot prompt
+code-flash -p "summarize this codebase" # Print and exit
+code-flash --auto-approve               # Skip permission prompts
+code-flash --resume 1                   # Resume previous session
+code-flash --coordinator                # Coordinator mode
 ```
-
-### First Session Demo
-
-```
-cc-mini
-
-> list all python files in this project
-↳ Glob(**/*.py) ✓
-Found 12 Python files...
-
-> read engine.py and explain the tool loop
-↳ Read(src/core/engine.py) ✓
-The submit() method implements an agentic loop...
-
-> /buddy
-Hatching your companion...
-✨ SHINY LEGENDARY DUCK
-Glitch Quack hatched! ★★★★★
-
-> /buddy mood
-Glitch Quack's mood:
-  Happy      ████████████████░░░░  65 (high)
-  Bored      ██████████░░░░░░░░░░  50 (neutral)
-
-> /review
-Running skill: /review…
-↳ Bash(git diff) … ✓ done
-## Code Review: no issues found ✓
-```
-
-[Full configuration docs &rarr;](docs/configuration.md)
 
 ---
 
-## Tools
+## 🛠 Tools
 
 | Tool | Description | Permission |
 |------|-------------|------------|
@@ -140,27 +112,62 @@ Running skill: /review…
 | `EnterPlanMode` | Enter plan mode | auto-approved |
 | `ExitPlanMode` | Exit plan mode | auto-approved |
 
-Coordinator mode adds: `Agent` (spawn worker), `SendMessage` (continue worker), `TaskStop` (stop worker). Plan mode also uses `Agent` to launch parallel read-only explore/plan subagents. See [coordinator docs](docs/coordinator.md).
+Coordinator mode adds: `Agent` (spawn worker), `SendMessage` (continue worker), `TaskStop` (stop worker).
 
 ---
 
-## Data Paths
+## ⚙️ Configuration
+
+### Environment Variables
+
+| Variable | Description |
+|----------|-------------|
+| `CODE_FLASH_MODEL` | Model name (e.g. `claude-sonnet-4-5`) |
+| `CODE_FLASH_MAX_TOKENS` | Max output tokens |
+| `CODE_FLASH_EFFORT` | Reasoning effort (`low`, `medium`, `high`) |
+| `CODE_FLASH_PROVIDER` | `anthropic` or `openai` |
+| `CODE_FLASH_BUDDY_MODEL` | Model for companion pet reactions |
+| `CODE_FLASH_BUDDY_SEED` | Override buddy seed for specific companion |
+
+### TOML Config Files
+
+Loaded in order (later overrides earlier):
+
+1. `~/.config/code-flash/config.toml`
+2. `.code-flash.toml` in the current working directory
+
+```toml
+# Example: .code-flash.toml
+[anthropic]
+api_key = "sk-ant-..."
+model = "claude-sonnet-4"
+
+[sandbox]
+enabled = true
+auto_allow_bash = true
+```
+
+See [docs/configuration.md](docs/configuration.md) for full details.
+
+---
+
+## 📁 Data Paths
 
 | Data | Path |
 |------|------|
-| Installation (source code) | `~/.cc-mini/` |
-| Sessions | `~/.config/cc-mini/sessions/` |
-| Memory (KAIROS) | `~/.config/cc-mini/memory/` |
-| Plans | `~/.config/cc-mini/plans/` |
-| REPL history | `~/.config/cc-mini/history` |
-| Companion data | `~/.config/cc-mini/companion.json` |
-| User skills | `~/.cc-mini/skills/` |
-| Project skills | `{cwd}/.cc-mini/skills/` |
-| Project config | `.cc-mini.toml` |
+| Installation (source code) | `~/.code-flash/` |
+| Sessions | `~/.config/code-flash/sessions/` |
+| Memory (KAIROS) | `~/.config/code-flash/memory/` |
+| Plans | `~/.config/code-flash/plans/` |
+| REPL history | `~/.config/code-flash/history` |
+| Companion data | `~/.config/code-flash/companion.json` |
+| User skills | `~/.config/code-flash/skills/` |
+| Project skills | `{cwd}/.code-flash/skills/` |
+| Project config | `.code-flash.toml` |
 
 ---
 
-## Slash Commands
+## 💬 Slash Commands
 
 | Command | Description |
 |---------|-------------|
@@ -171,17 +178,18 @@ Coordinator mode adds: `Agent` (spawn worker), `SendMessage` (continue worker), 
 | `/clear` | Clear conversation, start new session |
 | `/skills` | List all available skills |
 | `/buddy` | Companion pet — hatch, pet, stats, mood |
-| `/buddy help` | Show all buddy commands and gameplay guide |
 | `/review` | Code review (skill) |
 | `/commit` | Git commit (skill) |
 | `/test` | Run tests (skill) |
 | `/simplify` | Review and fix code (skill) |
+| `/plan` | Enter plan mode |
+| `/model` | Switch model |
 
 Type `/` to see autocomplete suggestions.
 
 ---
 
-## Project Structure
+## 🏗 Project Structure
 
 ```
 src/
@@ -208,28 +216,34 @@ src/
 ├── features/              # Pluggable capabilities
 │   ├── compact.py         # Context compression
 │   ├── coordinator.py     # Coordinator mode
-│   ├── worker_manager.py  # Background worker lifecycle
 │   ├── cost_tracker.py    # Token usage tracking
 │   ├── memory.py          # KAIROS memory system
 │   ├── plan.py            # Plan mode logic
 │   ├── skills.py          # Skill loader and registry
-│   ├── skills_bundled.py  # Built-in skills (review, commit, test, simplify)
+│   ├── skills_bundled.py  # Built-in skills
 │   └── sandbox/           # Bubblewrap sandbox subsystem
 │
 ├── tui/                   # Terminal UI
 │   ├── app.py             # CLI entry point + REPL
 │   ├── query.py           # Query submission + streaming display
 │   ├── rendering.py       # Rich console rendering
-│   ├── prompt.py          # Input prompt
-│   ├── input_parser.py    # Input parsing
-│   ├── shell.py           # Shell integration
-│   └── keylistener.py     # Esc/Ctrl+C detection
+│   └── prompt.py          # Input prompt
 │
 ├── commands/              # Slash command handlers
-└── buddy/                 # AI companion pet system
+├── buddy/                 # AI companion pet system
+│   ├── companion.py       # Deterministic companion generation
+│   ├── mood.py            # Mood engine
+│   ├── sprites.py         # ASCII sprite art
+│   └── poke_game/         # Idle adventure game
+│
+web/                       # Web UI
+├── backend/               # FastAPI + WebSocket
+└── frontend/              # React + TypeScript + Tailwind
 ```
 
-## Running Tests
+---
+
+## 🧪 Running Tests
 
 ```bash
 pytest tests/ -v
@@ -238,13 +252,30 @@ pytest tests/ -v -k "not integration"  # skip bwrap tests
 
 ---
 
-## Documentation
+## 📚 Documentation
 
 | Topic | Link |
 |-------|------|
-| Configuration (API keys, TOML, CLI flags) | [docs/configuration.md](docs/configuration.md) |
-| Buddy (AI companion pet) | [docs/buddy.md](docs/buddy.md) |
-| Coordinator Mode (background workers) | [docs/coordinator.md](docs/coordinator.md) |
+| Configuration | [docs/configuration.md](docs/configuration.md) |
+| Buddy (AI Companion) | [docs/buddy.md](docs/buddy.md) |
+| Coordinator Mode | [docs/coordinator.md](docs/coordinator.md) |
 | KAIROS Memory System | [docs/memory.md](docs/memory.md) |
-| Skills (custom workflows) | [docs/skills.md](docs/skills.md) |
-| Sandbox (bash isolation) | [docs/sandbox.md](docs/sandbox.md) |
+| Skills | [docs/skills.md](docs/skills.md) |
+| Sandbox | [docs/sandbox.md](docs/sandbox.md) |
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/amazing-feature`)
+3. Run tests (`pytest tests/ -v`)
+4. Commit your changes (`git commit -m 'Add amazing feature'`)
+5. Push to the branch (`git push origin feature/amazing-feature`)
+6. Open a Pull Request
+
+## 📄 License
+
+This project is open source and available under the [MIT License](LICENSE).

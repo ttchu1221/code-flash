@@ -25,7 +25,7 @@ env/
 plan.md
 CLAUDE.md
 
-.cc-mini.toml
+.code-flash.toml
 
 
 # Ignore local configuration files that may contain sensitive information
@@ -35,3 +35,4 @@ CLAUDE.md
 
 # vscode
 launch.json
+node_modules/

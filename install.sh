@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-REPO="https://github.com/e10nMa2k/cc-mini.git"
-INSTALL_DIR="${CC_MINI_INSTALL_DIR:-$HOME/.cc-mini}"
-BRANCH="${CC_MINI_BRANCH:-main}"
+REPO="https://github.com/ttchu1221/code-flash.git"
+INSTALL_DIR="${CODE_FLASH_INSTALL_DIR:-$HOME/.code-flash}"
+BRANCH="${CODE_FLASH_BRANCH:-main}"
 
 # ── Colors ────────────────────────────────────────────────────────────────────
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'; CYAN='\033[0;36m'
 BOLD='\033[1m'; RESET='\033[0m'
-info()    { printf "${CYAN}[cc-mini]${RESET} %s\n" "$*"; }
-success() { printf "${GREEN}[cc-mini]${RESET} ${BOLD}%s${RESET}\n" "$*"; }
-warn()    { printf "${YELLOW}[cc-mini]${RESET} %s\n" "$*" >&2; }
-die()     { printf "${RED}[cc-mini] ERROR:${RESET} %s\n" "$*" >&2; exit 1; }
+info()    { printf "${CYAN}[code-flash]${RESET} %s\n" "$*"; }
+success() { printf "${GREEN}[code-flash]${RESET} ${BOLD}%s${RESET}\n" "$*"; }
+warn()    { printf "${YELLOW}[code-flash]${RESET} %s\n" "$*" >&2; }
+die()     { printf "${RED}[code-flash] ERROR:${RESET} %s\n" "$*" >&2; exit 1; }
 
 # ── Detect Python 3.11+ ───────────────────────────────────────────────────────
 find_python() {
@@ -32,7 +32,7 @@ find_python() {
 # ── Main ──────────────────────────────────────────────────────────────────────
 main() {
     printf "\n${BOLD}╔══════════════════════════════════════════╗${RESET}\n"
-    printf   "${BOLD}║        cc-mini  installer                ║${RESET}\n"
+    printf   "${BOLD}║       code-flash  installer              ║${RESET}\n"
     printf   "${BOLD}╚══════════════════════════════════════════╝${RESET}\n\n"
 
     # 1. Check dependencies
@@ -51,7 +51,7 @@ main() {
         git -C "$INSTALL_DIR" fetch --quiet origin
         git -C "$INSTALL_DIR" reset --hard "origin/${BRANCH}" --quiet
     else
-        info "Cloning cc-mini into ${INSTALL_DIR} ..."
+        info "Cloning code-flash into ${INSTALL_DIR} ..."
         rm -rf "$INSTALL_DIR"
         git clone --depth 1 --branch "$BRANCH" "$REPO" "$INSTALL_DIR" --quiet
     fi
@@ -68,19 +68,19 @@ main() {
     "$VENV_DIR/bin/pip" install --quiet -e "$INSTALL_DIR"
 
     # 4. Create a launcher script in ~/.local/bin (no sudo needed)
-    BIN_DIR="${CC_MINI_BIN_DIR:-$HOME/.local/bin}"
+    BIN_DIR="${CODE_FLASH_BIN_DIR:-$HOME/.local/bin}"
     mkdir -p "$BIN_DIR"
-    LAUNCHER="$BIN_DIR/cc-mini"
+    LAUNCHER="$BIN_DIR/code-flash"
 
     cat > "$LAUNCHER" <<EOF
 #!/usr/bin/env bash
-exec "${VENV_DIR}/bin/cc-mini" "\$@"
+exec "${VENV_DIR}/bin/code-flash" "\$@"
 EOF
     chmod +x "$LAUNCHER"
 
     # 5. PATH advice
     printf "\n"
-    success "cc-mini installed successfully!"
+    success "code-flash installed successfully!"
     printf "\n"
 
     if ! echo "$PATH" | tr ':' '\n' | grep -qx "$BIN_DIR"; then
@@ -89,7 +89,7 @@ EOF
         printf "    ${BOLD}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.bashrc && source ~/.bashrc${RESET}\n"
         printf "    ${BOLD}echo 'export PATH=\"\$HOME/.local/bin:\$PATH\"' >> ~/.zshrc  && source ~/.zshrc${RESET}\n\n"
     else
-        printf "  Run:  ${BOLD}cc-mini${RESET}\n\n"
+        printf "  Run:  ${BOLD}code-flash${RESET}\n\n"
     fi
 
     printf "  Set your API key first:\n"

@@ -120,7 +120,14 @@ def run_query(engine: Engine, user_input: str | list, print_mode: bool,
                                 console.print(f"[dim]{line}[/dim] [red]✗[/red]", highlight=False)
                                 console.print(f"  [red]{result.content[:200]}[/red]")
                             else:
-                                render_todo_list(todo_manager.get_items(), console)
+                                # Derive action summary from tool input
+                                action = ""
+                                if tool_name == "TodoUpdate" and tool_input.get("status"):
+                                    action = f"Update todos"
+                                elif tool_name == "TodoWrite":
+                                    count = len(tool_input.get("todos", []))
+                                    action = f"Create {count} todos" if count else "Clear todos"
+                                render_todo_list(todo_manager.get_items(), console, action=action)
                         elif result.is_error:
                             console.print(f"[dim]{line}[/dim] [red]✗[/red]", highlight=False)
                             console.print(f"  [red]{result.content[:200]}[/red]")

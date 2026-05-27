@@ -1,16 +1,16 @@
 # Coordinator Mode
 
-> This feature exists in the official Claude Code codebase but has not been fully released. cc-mini implements and ships it.
+> This feature exists in the official Claude Code codebase but has not been fully released. code-flash implements and ships it.
 
 Coordinator mode turns the assistant into an orchestrator that can launch background workers for parallel research, implementation, and verification.
 
 ## Usage
 
 ```bash
-cc-mini --coordinator
+code-flash --coordinator
 # or
-export CC_MINI_COORDINATOR=1
-cc-mini
+export CODE_FLASH_COORDINATOR=1
+code-flash
 ```
 
 ## What It Adds
@@ -30,7 +30,7 @@ cc-mini
 
 ## Typical Workflow
 
-1. Start `cc-mini --coordinator`
+1. Start `code-flash --coordinator`
 2. Ask for a larger task (research, implement, verify)
 3. Coordinator launches workers in background
 4. Worker results arrive as `<task-notification>` messages

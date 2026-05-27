@@ -1,4 +1,4 @@
-"""Bundled skills — built-in skills shipped with cc-mini.
+"""Bundled skills — built-in skills shipped with code-flash.
 
 Modelled after claude-code's ``src/skills/bundled/`` directory.
 Each skill is registered via ``register_skill()`` during startup.

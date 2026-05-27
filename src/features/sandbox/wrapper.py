@@ -126,15 +126,15 @@ def _get_protected_paths(cwd: str) -> list[str]:
     """Return paths that must be read-only protected inside sandbox.
 
     Corresponds to sandbox-adapter.ts:230-255:
-    - .cc-mini.toml (project config)
-    - ~/.config/cc-mini/config.toml (global config)
+    - .code-flash.toml (project config)
+    - ~/.config/code-flash/config.toml (global config)
     - CLAUDE.md (should not be modified by sandbox)
     """
     paths = []
-    local_config = Path(cwd) / ".cc-mini.toml"
+    local_config = Path(cwd) / ".code-flash.toml"
     if local_config.exists():
         paths.append(str(local_config))
-    global_config = Path.home() / ".config" / "cc-mini" / "config.toml"
+    global_config = Path.home() / ".config" / "code-flash" / "config.toml"
     if global_config.exists():
         paths.append(str(global_config))
     claude_md = Path(cwd) / "CLAUDE.md"
