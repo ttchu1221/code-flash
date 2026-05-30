@@ -374,3 +374,79 @@ def _provider_env_values(env_values: dict[str, Any], provider: str) -> dict[str,
         "api_key": env_values.get("anthropic_api_key"),
         "base_url": env_values.get("anthropic_base_url"),
     }
+
+
+# ---------------------------------------------------------------------------
+# MCP server config loading
+# ---------------------------------------------------------------------------
+
+# Search paths for mcp.json (Claude Desktop compatible format)
+_MCP_JSON_PATHS = (
+    Path.cwd() / "mcp.json",
+    Path.home() / ".config" / "code-flash" / "mcp.json",
+)
+
+
+def load_mcp_configs(config_paths: tuple[Path, ...] = ()) -> list:
+    """Load MCP server configurations from settings.json, mcp.json and/or config.toml files.
+
+    Searches in order:
+      1. ~/.config/code-flash/settings.json (UI settings)
+      2. ./mcp.json (project-level)
+      3. ~/.config/code-flash/mcp.json (user-level)
+      4. [mcp_servers] section in config.toml files
+
+    Returns a list of MCPServerConfig instances.
+    """
+    from .mcp_client import MCPServerConfig, parse_mcp_configs_from_json, parse_mcp_configs_from_toml, parse_mcp_configs_from_list
+
+    configs: list[MCPServerConfig] = []
+    seen_names: set[str] = set()
+
+    # 0. Load from settings.json (UI settings)
+    settings_file = Path.home() / ".config" / "code-flash" / "settings.json"
+    if settings_file.exists():
+        try:
+            import json
+            data = json.loads(settings_file.read_text(encoding="utf-8"))
+            if "mcp_servers" in data:
+                parsed = parse_mcp_configs_from_list(data["mcp_servers"])
+                for cfg in parsed:
+                    if cfg.name not in seen_names:
+                        configs.append(cfg)
+                        seen_names.add(cfg.name)
+        except Exception:
+            pass
+
+    # 1. Load from mcp.json files
+    for path in _MCP_JSON_PATHS:
+        if not path.exists():
+            continue
+        try:
+            import json
+            data = json.loads(path.read_text(encoding="utf-8"))
+            parsed = parse_mcp_configs_from_json(data)
+            for cfg in parsed:
+                if cfg.name not in seen_names:
+                    configs.append(cfg)
+                    seen_names.add(cfg.name)
+        except Exception:
+            pass  # skip malformed files
+
+    # 2. Load from config.toml [mcp_servers] sections
+    all_config_paths = config_paths or _DEFAULT_CONFIG_PATHS
+    for path in all_config_paths:
+        if not path.exists():
+            continue
+        try:
+            with path.open("rb") as fh:
+                data = tomllib.load(fh)
+            parsed = parse_mcp_configs_from_toml(data)
+            for cfg in parsed:
+                if cfg.name not in seen_names:
+                    configs.append(cfg)
+                    seen_names.add(cfg.name)
+        except Exception:
+            pass
+
+    return configs

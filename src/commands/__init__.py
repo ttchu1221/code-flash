@@ -42,6 +42,7 @@ class CommandContext:
     new_session_store: object = None
     reconfigure_mode: object = None
     plan_manager: object = None
+    mcp_manager: object = None  # MCPClientManager instance
     pending_query: str | None = None  # set by commands that want a follow-up model query
 
 
@@ -563,6 +564,82 @@ def _cmd_advisor(ctx: CommandContext, args: str) -> None:
     )
 
 
+def _cmd_mcp(ctx: CommandContext, args: str) -> None:
+    """Show MCP server status, list tools, or reconnect."""
+    mgr = ctx.mcp_manager
+    if mgr is None:
+        ctx.console.print("[dim]MCP 未初始化。[/dim]")
+        return
+
+    subcmd = args.strip().lower()
+
+    if subcmd == "reconnect":
+        ctx.console.print("[dim]正在重新连接 MCP 服务器…[/dim]")
+        mgr.disconnect_all()
+        from core.mcp_client import MCPClientManager
+        from core.config import load_mcp_configs
+        mcp_configs = load_mcp_configs(ctx.app_config.config_paths)
+        if mcp_configs:
+            mgr.load_configs(mcp_configs)
+            tools = mgr.connect_all()
+            ctx.console.print(f"[green]✓[/green] 已重连, 发现 {len(tools)} 个工具")
+            # Update engine tools
+            ctx.engine.set_tools(_rebuild_engine_tools(ctx, mgr))
+        else:
+            ctx.console.print("[dim]未找到 MCP 服务器配置。[/dim]")
+        return
+
+    # Default: show status
+    statuses = mgr.get_server_status()
+    if not statuses:
+        ctx.console.print("[dim]未配置 MCP 服务器。[/dim]")
+        ctx.console.print("[dim]在 mcp.json 或 config.toml 的 [mcp_servers] 中配置。[/dim]")
+        return
+
+    table = Table(title="MCP 服务器", show_header=True, header_style="bold cyan")
+    table.add_column("名称", style="green")
+    table.add_column("传输", style="dim", width=6)
+    table.add_column("状态", width=12)
+    table.add_column("工具数", justify="right", width=6)
+    table.add_column("错误", style="red")
+
+    for s in statuses:
+        status_icon = "[green]● 已连接[/green]" if s["status"] == "connected" else "[red]● 断开[/red]"
+        error = s.get("error", "")
+        if error:
+            error = error[:60] + "…" if len(error) > 60 else error
+        table.add_row(s["name"], s["transport"], status_icon, str(s["tools"]), error)
+
+    ctx.console.print(table)
+
+    # List tools
+    tools = mgr.tools
+    if tools:
+        ctx.console.print()
+        tool_table = Table(title="MCP 工具", show_header=True, header_style="bold cyan")
+        tool_table.add_column("工具名", style="green")
+        tool_table.add_column("服务器", style="dim", width=12)
+        tool_table.add_column("描述")
+
+        for name, info in sorted(tools.items()):
+            desc = info.description[:60] + "…" if len(info.description) > 60 else info.description
+            tool_table.add_row(name, info.server_name, desc)
+
+        ctx.console.print(tool_table)
+
+
+def _rebuild_engine_tools(ctx: CommandContext, mcp_mgr) -> list:
+    """Rebuild the engine's tool list with current MCP tools."""
+    from core.mcp_tool import MCPTool
+    tools = []
+    for name, tool in ctx.engine._tools.items():
+        if not isinstance(tool, MCPTool):
+            tools.append(tool)
+    for info in mcp_mgr.tools.values():
+        tools.append(MCPTool(info, mcp_mgr))
+    return tools
+
+
 # (name, description, handler)
 _COMMAND_TABLE: list[tuple[str, str, object]] = [
     ("help",     "显示可用命令",                         _cmd_help),
@@ -578,6 +655,7 @@ _COMMAND_TABLE: list[tuple[str, str, object]] = [
     ("model",   "显示或切换模型 [模型名称]",               _cmd_model),
     ("plan",    "进入计划模式或显示当前计划",             _cmd_plan),
     ("advisor", "切换 Advisor 模式 (咨询更强大的模型)",  _cmd_advisor),
+    ("mcp",     "查看 MCP 服务器状态和工具 [reconnect]", _cmd_mcp),
 ]
 
 _HANDLERS: dict[str, object] = {name: handler for name, _, handler in _COMMAND_TABLE}

@@ -38,5 +38,6 @@ export type WSEvent =
   | { type: 'error'; content: string }
   | { type: 'system'; content: string }
   | { type: 'usage'; input_tokens: number; output_tokens: number }
+  | { type: 'compact_done'; pre_tokens: number; post_tokens: number; pre_messages: number; post_messages: number; auto?: boolean }
   | { type: 'done' }
   | { type: 'permission_request'; id: string; tool_name: string; input: Record<string, unknown> }

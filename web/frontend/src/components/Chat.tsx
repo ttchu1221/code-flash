@@ -10,6 +10,7 @@ import {
   Wifi,
   WifiOff,
   RefreshCw,
+  Minimize2,
 } from 'lucide-react'
 import clsx from 'clsx'
 import type { ChatMessage, ToolCall, PermissionRequest, SessionMeta, WSEvent } from '../types'
@@ -39,6 +40,8 @@ export function Chat() {
   const [autoScroll, setAutoScroll] = useState(true)
   const [inputFocused, setInputFocused] = useState(false)
   const [activeSkills, setActiveSkills] = useState<ActiveSkill[]>([])
+  const [inputTokens, setInputTokens] = useState(0)
+  const [isCompacting, setIsCompacting] = useState(false)
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const chatContainerRef = useRef<HTMLDivElement>(null)
@@ -110,7 +113,20 @@ export function Chat() {
       case 'system':
         setMessages((prev) => [...prev, { id: newId(), role: 'system', content: event.content, timestamp: Date.now() }])
         break
-      case 'usage': break
+      case 'usage':
+        setInputTokens(event.input_tokens)
+        break
+      case 'compact_done': {
+        setIsCompacting(false)
+        const label = event.auto ? '🔄 自动压缩完成' : '✅ 压缩完成'
+        setMessages((prev) => [...prev, {
+          id: newId(), role: 'system',
+          content: `${label}: ${event.pre_tokens.toLocaleString()} → ${event.post_tokens.toLocaleString()} tokens ` +
+            `(${event.pre_messages} → ${event.post_messages} 条消息)`,
+          timestamp: Date.now(),
+        }])
+        break
+      }
       case 'done': {
         const finalText = streamingTextRef.current
         const finalTools = [...pendingToolsRef.current]
@@ -134,6 +150,7 @@ export function Chat() {
   const handlePermissionRequest = useCallback((req: PermissionRequest) => { setPermissionReq(req) }, [])
 
   const ws = useWebSocket({ sessionId, onEvent: handleEvent, onPermissionRequest: handlePermissionRequest })
+  const { sendCompact } = ws
 
   useEffect(() => {
     ws.connect()
@@ -212,6 +229,12 @@ export function Chat() {
     streamingTextRef.current = ''; setStreamingText('')
     pendingToolsRef.current = []; setPendingTools([])
   }, [ws])
+
+  const handleCompact = useCallback(() => {
+    if (isStreaming || isCompacting) return
+    setIsCompacting(true)
+    sendCompact()
+  }, [isStreaming, isCompacting, sendCompact])
 
   const handleNewSession = useCallback(() => {
     ws.disconnect()
@@ -426,15 +449,39 @@ export function Chat() {
               </div>
             </div>
             <div className="flex items-center justify-between mt-2.5 px-1">
-              <span className="text-[11px]" style={{ color: 'var(--text-faint)' }}>
-                / 唤起技能 · Shift+Enter 换行 · /clear 清空 · /compact 压缩
-              </span>
-              {isStreaming && (
-                <span className="text-[11px] text-violet-400/70 animate-pulse flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
-                  生成中...
+              <div className="flex items-center gap-3">
+                <span className="text-[11px]" style={{ color: 'var(--text-faint)' }}>
+                  / 唤起技能 · Shift+Enter 换行 · /clear 清空
                 </span>
-              )}
+                {inputTokens > 0 && (
+                  <span className="text-[11px] font-mono px-1.5 py-0.5 rounded"
+                    style={{ color: 'var(--text-faint)', background: 'var(--bg-hover)' }}>
+                    {inputTokens >= 1000 ? `${(inputTokens / 1000).toFixed(1)}k` : inputTokens} tokens
+                  </span>
+                )}
+              </div>
+              <div className="flex items-center gap-2">
+                {isStreaming && (
+                  <span className="text-[11px] text-violet-400/70 animate-pulse flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
+                    生成中...
+                  </span>
+                )}
+                {!isStreaming && messages.length >= 4 && (
+                  <button onClick={handleCompact}
+                    disabled={isCompacting}
+                    className="flex items-center gap-1 text-[11px] px-2 py-1 rounded-lg transition-all hover:bg-violet-500/10"
+                    style={{ color: isCompacting ? 'var(--text-faint)' : 'var(--text-muted)' }}
+                    title="压缩上下文（释放 token 空间）">
+                    {isCompacting ? (
+                      <Loader2 size={11} className="animate-spin" />
+                    ) : (
+                      <Minimize2 size={11} />
+                    )}
+                    <span>{isCompacting ? '压缩中...' : '压缩'}</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

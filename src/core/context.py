@@ -1,4 +1,5 @@
 """System prompt construction — section-based architecture matching prompts.ts."""
+from __future__ import annotations
 
 import os
 import platform
@@ -286,7 +287,8 @@ At the very end of your turn, once you are happy with your final plan file, call
 # Public API
 # ---------------------------------------------------------------------------
 
-def build_system_prompt(cwd: str | None = None, model: str = "", memory_dir: Path | None = None) -> str:
+def build_system_prompt(cwd: str | None = None, model: str = "", memory_dir: Path | None = None,
+                        mcp_tool_names: list[str] | None = None) -> str:
     """Assemble the full system prompt from section functions.
 
     Matches prompts.ts getSystemPrompt() architecture: static sections first,
@@ -308,6 +310,16 @@ def build_system_prompt(cwd: str | None = None, model: str = "", memory_dir: Pat
         _get_git_section(cwd),
         _get_claude_md_section(cwd),
     ]
+
+    # MCP tools section
+    if mcp_tool_names:
+        tool_list = ", ".join(sorted(mcp_tool_names))
+        sections.append(
+            "# MCP Tools\n"
+            f"The following tools are provided by external MCP servers: {tool_list}.\n"
+            "These tools are executed by calling the corresponding MCP server. "
+            "Treat them like any other tool — use them when appropriate for the task."
+        )
 
     # Memory system
     if memory_dir is not None:

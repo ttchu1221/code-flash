@@ -110,6 +110,14 @@ export function useWebSocket({ sessionId, onEvent, onPermissionRequest }: UseWeb
     }
   }, [])
 
+  const sendCompact = useCallback((instructions?: string) => {
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: 'compact', instructions: instructions || '' }))
+      return true
+    }
+    return false
+  }, [])
+
   useEffect(() => {
     return () => {
       connectGenerationRef.current++
@@ -127,5 +135,6 @@ export function useWebSocket({ sessionId, onEvent, onPermissionRequest }: UseWeb
     sendMessage,
     sendPermissionResponse,
     abort,
+    sendCompact,
   }
 }

@@ -60,6 +60,9 @@ from tui.prompt import bordered_prompt, slash_completer
 from tui.query import run_query
 from tui.input_parser import parse_input
 from tui.shell import run_shell, handle_sandbox_command
+from core.mcp_client import MCPClientManager
+from core.mcp_tool import MCPTool
+from core.config import load_mcp_configs
 
 console = Console()
 _HISTORY_FILE = Path.home() / ".config" / "code-flash" / "history"
@@ -177,6 +180,19 @@ def main() -> None:
     ensure_memory_dir(memory_dir)
     session_id = datetime.now().strftime("%Y%m%d-%H%M%S")
 
+    # MCP initialization
+    mcp_manager = MCPClientManager()
+    mcp_configs = load_mcp_configs(app_config.config_paths)
+    if mcp_configs:
+        mcp_manager.load_configs(mcp_configs)
+        mcp_tools_info = mcp_manager.connect_all()
+        if mcp_tools_info:
+            console.print(f"[dim]MCP: 已连接 {len(mcp_manager.connected_servers)} 个服务器, "
+                          f"发现 {len(mcp_tools_info)} 个工具[/dim]")
+        if mcp_manager.errors:
+            for name, err in mcp_manager.errors.items():
+                console.print(f"[dim yellow]MCP 警告: {err}[/dim yellow]")
+
     # Skill setup — register bundled + discover project/user skills
     register_bundled_skills()
     cwd = str(Path.cwd())
@@ -196,7 +212,9 @@ def main() -> None:
     worker_tool_names = [tool.name for tool in _build_base_tools()]
 
     def _build_system_prompt_for_mode(coordinator_enabled: bool) -> str:
-        prompt = build_system_prompt(cwd=cwd, model=app_config.model, memory_dir=memory_dir)
+        mcp_tool_names = list(mcp_manager.tools.keys()) if mcp_manager.tools else None
+        prompt = build_system_prompt(cwd=cwd, model=app_config.model, memory_dir=memory_dir,
+                                     mcp_tool_names=mcp_tool_names)
         if skills_section:
             prompt += "\n\n" + skills_section
         if coordinator_enabled:
@@ -276,6 +294,9 @@ def main() -> None:
                 SendMessageTool(worker_manager),
                 TaskStopTool(worker_manager),
             ])
+        # Add MCP tools
+        for mcp_tool_info in mcp_manager.tools.values():
+            tools.append(MCPTool(mcp_tool_info, mcp_manager))
         return tools
 
     coordinator_enabled = is_coordinator_mode()
@@ -611,6 +632,7 @@ def main() -> None:
                 ),
                 reconfigure_mode=_apply_session_mode,
                 plan_manager=plan_manager,
+                mcp_manager=mcp_manager,
             )
             handle_command(cmd_name, cmd_args, cmd_ctx)
             session_store = cmd_ctx.session_store
@@ -764,6 +786,9 @@ def main() -> None:
                             pass
 
                 threading.Thread(target=_bg_dream, daemon=True).start()
+
+    # Cleanup MCP connections
+    mcp_manager.disconnect_all()
 
     # Print cost summary on exit
     if cost_tracker.total_cost_usd > 0:

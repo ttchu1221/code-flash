@@ -15,7 +15,7 @@
 
 Code Flash is a minimal, hackable AI coding assistant framework. It provides a complete agentic loop with tool execution, permission management, session persistence, and a beautiful terminal UI — all in ~1000 lines of Python.
 
-Inspired by Claude Code, extended with features like **Coordinator Mode**, **Buddy (AI Companion Pet)**, **KAIROS Memory**, **Skills System**, and **Sandbox Isolation**.
+Inspired by [Claude Code](https://docs.anthropic.com/en/docs/claude-code), based on [cc-mini](https://github.com/nicobailon/cc-mini), extended with features like **Coordinator Mode**, **Buddy (AI Companion Pet)**, **KAIROS Memory**, **Skills System**, and **Sandbox Isolation**.
 
 ## ✨ Features
 
@@ -39,6 +39,7 @@ Inspired by Claude Code, extended with features like **Coordinator Mode**, **Bud
 | **KAIROS Memory** | Cross-session memory with auto-consolidation | [docs →](docs/memory.md) |
 | **Skills** | One-command workflows: `/review`, `/commit`, `/test`, `/simplify` | [docs →](docs/skills.md) |
 | **Sandbox** | Bubblewrap isolation for bash commands (Linux) | [docs →](docs/sandbox.md) |
+| **MCP** | Model Context Protocol — connect external tool servers | [see below](#-mcp-model-context-protocol) |
 
 ### Web UI
 
@@ -116,6 +117,52 @@ Coordinator mode adds: `Agent` (spawn worker), `SendMessage` (continue worker), 
 
 ---
 
+## 🔌 MCP (Model Context Protocol)
+
+Code Flash supports the [Model Context Protocol](https://modelcontextprotocol.io/) — connect external tool servers to extend the agent's capabilities with filesystem access, databases, APIs, and more.
+
+### Install MCP SDK
+
+```bash
+pip install -e ".[mcp]"
+```
+
+### Configuration
+
+Create a `mcp.json` in your project root (or `~/.config/code-flash/mcp.json` for global):
+
+```json
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
+    },
+    "remote-api": {
+      "url": "http://localhost:8080/sse"
+    }
+  }
+}
+```
+
+Or use `config.toml`:
+
+```toml
+[mcp_servers.filesystem]
+command = "npx"
+args = ["-y", "@modelcontextprotocol/server-filesystem", "/path/to/dir"]
+
+[mcp_servers.remote-api]
+url = "http://localhost:8080/sse"
+```
+
+### Commands
+
+- `/mcp` — Show connected servers and available tools
+- `/mcp reconnect` — Reconnect to all MCP servers
+
+---
+
 ## ⚙️ Configuration
 
 ### Environment Variables
@@ -184,6 +231,8 @@ See [docs/configuration.md](docs/configuration.md) for full details.
 | `/simplify` | Review and fix code (skill) |
 | `/plan` | Enter plan mode |
 | `/model` | Switch model |
+| `/mcp` | Show MCP server status and tools |
+| `/advisor` | Toggle advisor mode |
 
 Type `/` to see autocomplete suggestions.
 
@@ -196,11 +245,13 @@ src/
 ├── core/                  # Pure harness — engine, LLM, config
 │   ├── engine.py          # Streaming API loop + tool execution
 │   ├── llm.py             # LLM client (Anthropic + OpenAI)
-│   ├── config.py          # Configuration (CLI, env, TOML)
+│   ├── config.py          # Configuration (CLI, env, TOML, MCP)
 │   ├── context.py         # System prompt builder
 │   ├── tool.py            # Base Tool protocol + ToolResult
 │   ├── permissions.py     # Permission checker
-│   └── session.py         # Session persistence
+│   ├── session.py         # Session persistence
+│   ├── mcp_client.py      # MCP client manager (stdio/SSE)
+│   └── mcp_tool.py        # MCP tool wrapper → Tool interface
 │
 ├── tools/                 # Tool implementations (one per file)
 │   ├── bash.py            # Shell command execution

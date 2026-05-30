@@ -7,15 +7,17 @@ import threading
 import uuid
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 # Make the project src importable
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
 
-from core.config import AppConfig
+from core.config import AppConfig, load_mcp_configs
 from core.context import build_system_prompt
 from core.engine import Engine
 from core.session import SessionStore
+from core.mcp_client import MCPClientManager
+from core.mcp_tool import MCPTool
 from features.compact import CompactService
 from features.cost_tracker import CostTracker
 from features.todo import TodoManager
@@ -44,6 +46,12 @@ class WebSessionManager:
         self._app_config = app_config
         self._sessions: dict[str, dict[str, Any]] = {}  # session_id -> {engine, tools, ...}
         self._lock = threading.Lock()
+        # MCP setup
+        self._mcp_manager = MCPClientManager()
+        mcp_configs = load_mcp_configs(app_config.config_paths)
+        if mcp_configs:
+            self._mcp_manager.load_configs(mcp_configs)
+            self._mcp_manager.connect_all()
 
     # ------------------------------------------------------------------
     # helpers
@@ -57,7 +65,7 @@ class WebSessionManager:
             TodoWriteTool, TodoUpdateTool,
             EnterPlanModeTool, ExitPlanModeTool,
         )
-        return [
+        tools = [
             FileReadTool(), GlobTool(), GrepTool(),
             FileEditTool(), FileWriteTool(),
             BashTool(sandbox_manager=sandbox_mgr),
@@ -65,6 +73,10 @@ class WebSessionManager:
             TodoWriteTool(TodoManager()),
             TodoUpdateTool(TodoManager()),
         ]
+        # Add MCP tools
+        for mcp_tool_info in self._mcp_manager.tools.values():
+            tools.append(MCPTool(mcp_tool_info, self._mcp_manager))
+        return tools
 
     def _build_system_prompt(self, cwd: str) -> str:
         memory_dir = self._app_config.memory_dir

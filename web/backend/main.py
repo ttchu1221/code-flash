@@ -26,6 +26,7 @@ sys.path.insert(0, _PROJECT_SRC)
 
 from core.config import AppConfig, load_app_config, validate_provider
 from core.engine import Engine, AbortedError
+from features.compact import CompactService, estimate_tokens, should_compact
 from session_manager import WebSessionManager
 
 # ---------------------------------------------------------------------------
@@ -176,6 +177,32 @@ def get_settings():
         "masked_env": {},
         "model_configs": {},
     }
+
+
+@app.get("/api/settings/mcp")
+def get_mcp_settings():
+    """Return saved MCP server configurations."""
+    settings = _load_settings()
+    return {"servers": settings.get("mcp_servers", [])}
+
+
+class MCPServerConfig(BaseModel):
+    name: str
+    transport: str = "stdio"
+    command: str = ""
+    args: list[str] = []
+    url: str = ""
+    enabled: bool = True
+
+
+@app.post("/api/settings/mcp")
+def save_mcp_settings(configs: list[MCPServerConfig]):
+    """Save MCP server configurations."""
+    settings = _load_settings()
+    settings["mcp_servers"] = [c.dict() for c in configs]
+    _save_settings(settings)
+    logger.info(f"Saved {len(configs)} MCP server configurations")
+    return {"success": True}
 
 
 @app.post("/api/settings")
@@ -739,6 +766,40 @@ async def ws_chat(ws: WebSocket, session_id: str):
                 # Run engine.submit() in thread pool and stream events to WS
                 await _stream_engine_response(ws, engine, content, session_id)
 
+                # Auto-compact check after each response
+                await _maybe_auto_compact(ws, session_id, engine)
+
+            # -- Compact (frontend button) --
+            if msg_type == "compact":
+                session_data = _get_session_mgr().get_session(session_id)
+                if session_data:
+                    compact_svc = session_data.get("compact_service")
+                    if compact_svc:
+                        try:
+                            messages = engine.get_messages()
+                            pre_tokens = estimate_tokens(messages)
+                            new_msgs, _ = await asyncio.get_event_loop().run_in_executor(
+                                _thread_pool,
+                                lambda: compact_svc.compact(
+                                    messages, engine.system_prompt,
+                                    custom_instructions=data.get("instructions", ""),
+                                ),
+                            )
+                            engine.set_messages(new_msgs)
+                            post_tokens = estimate_tokens(new_msgs)
+                            await ws.send_text(json.dumps({
+                                "type": "compact_done",
+                                "pre_tokens": pre_tokens,
+                                "post_tokens": post_tokens,
+                                "pre_messages": len(messages),
+                                "post_messages": len(new_msgs),
+                            }))
+                        except Exception as e:
+                            await ws.send_text(json.dumps({
+                                "type": "error",
+                                "content": f"压缩失败: {e}"
+                            }))
+
             # -- Abort --
             if msg_type == "abort":
                 engine.abort()
@@ -788,16 +849,20 @@ async def _handle_slash_command(ws: WebSocket, session_id: str, cmd: str, engine
             compact_svc = session_data.get("compact_service")
             if compact_svc:
                 try:
-                    old_len = len(engine.get_messages())
-                    new_msgs = await asyncio.get_event_loop().run_in_executor(
+                    messages = engine.get_messages()
+                    pre_tokens = estimate_tokens(messages)
+                    new_msgs, _ = await asyncio.get_event_loop().run_in_executor(
                         _thread_pool,
-                        lambda: compact_svc.compact(engine.get_messages()),
+                        lambda: compact_svc.compact(
+                            messages, engine.system_prompt, custom_instructions=args,
+                        ),
                     )
                     engine.set_messages(new_msgs)
-                    new_len = len(engine.get_messages())
+                    post_tokens = estimate_tokens(new_msgs)
                     await ws.send_text(json.dumps({
                         "type": "system",
-                        "content": f"上下文已压缩: {old_len} → {new_len} 条消息"
+                        "content": f"✅ 上下文已压缩: {pre_tokens:,} → {post_tokens:,} tokens "
+                                   f"({len(messages)} → {len(new_msgs)} 条消息)"
                     }))
                 except Exception as e:
                     await ws.send_text(json.dumps({
@@ -819,6 +884,44 @@ async def _handle_slash_command(ws: WebSocket, session_id: str, cmd: str, engine
 
     # Not handled — pass through to engine as normal message
     return False
+
+
+async def _maybe_auto_compact(ws: WebSocket, session_id: str, engine: Engine) -> None:
+    """Check if auto-compact is needed after a response and run it if so."""
+    session_data = _get_session_mgr().get_session(session_id)
+    if not session_data:
+        return
+    compact_svc = session_data.get("compact_service")
+    cost_tracker = session_data.get("cost_tracker")
+    if not compact_svc:
+        return
+
+    messages = engine.get_messages()
+    last_input_tokens = getattr(cost_tracker, "last_input_tokens", None) if cost_tracker else None
+
+    if not should_compact(messages, model=_app_config.model if _app_config else None,
+                          last_input_tokens=last_input_tokens):
+        return
+
+    try:
+        pre_tokens = estimate_tokens(messages)
+        logger.info(f"Auto-compact triggered: session={session_id}, tokens≈{pre_tokens}")
+        new_msgs, _ = await asyncio.get_event_loop().run_in_executor(
+            _thread_pool,
+            lambda: compact_svc.compact(messages, engine.system_prompt),
+        )
+        engine.set_messages(new_msgs)
+        post_tokens = estimate_tokens(new_msgs)
+        await ws.send_text(json.dumps({
+            "type": "compact_done",
+            "pre_tokens": pre_tokens,
+            "post_tokens": post_tokens,
+            "pre_messages": len(messages),
+            "post_messages": len(new_msgs),
+            "auto": True,
+        }))
+    except Exception as e:
+        logger.error(f"Auto-compact failed: session={session_id}, error={e}")
 
 
 async def _stream_engine_response(ws: WebSocket, engine: Engine, content: str, session_id: str = ""):

@@ -111,6 +111,24 @@ export function Sidebar({
           <Puzzle size={15} />
           <span>技能</span>
         </RouterLink>
+
+        <RouterLink
+          to="/settings"
+          className={clsx(
+            'flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm transition-all',
+            location.pathname === '/settings' ? 'font-medium' : ''
+          )}
+          style={{
+            background: location.pathname === '/settings' ? 'var(--accent-bg)' : 'transparent',
+            color: location.pathname === '/settings' ? '#a78bfa' : 'var(--text-secondary)',
+            border: location.pathname === '/settings' ? '1px solid var(--accent-border)' : '1px solid transparent',
+          }}
+          onMouseEnter={e => { if (location.pathname !== '/settings') e.currentTarget.style.background = 'var(--bg-hover)' }}
+          onMouseLeave={e => { if (location.pathname !== '/settings') e.currentTarget.style.background = 'transparent' }}
+        >
+          <Settings size={15} />
+          <span>MCP 设置</span>
+        </RouterLink>
       </div>
 
       {/* New session */}
